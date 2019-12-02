@@ -1,29 +1,22 @@
 package group4;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import genius.core.Bid;
-import genius.core.boaframework.AcceptanceStrategy;
-import genius.core.boaframework.BoaParty;
-import genius.core.boaframework.OMStrategy;
-import genius.core.boaframework.OfferingStrategy;
-import genius.core.boaframework.OpponentModel;
+import genius.core.boaframework.*;
 import genius.core.issue.Issue;
 import genius.core.issue.IssueDiscrete;
-import genius.core.issue.Value;
 import genius.core.issue.ValueDiscrete;
 import genius.core.parties.NegotiationInfo;
 import genius.core.uncertainty.BidRanking;
 import genius.core.utility.AbstractUtilitySpace;
 import genius.core.utility.AdditiveUtilitySpace;
 import genius.core.utility.EvaluatorDiscrete;
-
 import group4.components.*;
-
 import scpsolver.problems.LPSolution;
 import scpsolver.problems.LPWizard;
 import scpsolver.problems.LPWizardConstraint;
 
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class Agent4 extends BoaParty {
