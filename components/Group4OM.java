@@ -126,7 +126,8 @@ public class Group4OM extends OpponentModel {
         this.updateIssueWeight();
         this.updateEstimatedOpponentUtility();
     }
-
+    /* Place the estimated opponent utility weights into oppoonent utility space
+     */
     private void updateEstimatedOpponentUtility() {
         double estWeight = 0.0;
         List<Issue> issues = opponentUtilitySpace.getDomain().getIssues();
