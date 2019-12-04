@@ -27,7 +27,7 @@ public class Group4AS extends AcceptanceStrategy {
         this.negotiationSession = negoSession;
         offeringStrategy = strat;
         opponentModel = om;
-        utilitySpace = (AdditiveUtilitySpace) opponentModel.getOpponentUtilitySpace();
+        utilitySpace = (AdditiveUtilitySpace) negoSession.getUtilitySpace();
 
         if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
             discount = utilitySpace.getDiscountFactor();
