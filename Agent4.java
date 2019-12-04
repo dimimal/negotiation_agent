@@ -10,7 +10,6 @@ import genius.core.uncertainty.BidRanking;
 import genius.core.utility.AbstractUtilitySpace;
 import genius.core.utility.AdditiveUtilitySpace;
 import genius.core.utility.EvaluatorDiscrete;
-import group4.components.*;
 import scpsolver.problems.LPSolution;
 import scpsolver.problems.LPWizard;
 import scpsolver.problems.LPWizardConstraint;
@@ -25,10 +24,10 @@ public class Agent4 extends BoaParty {
     @Override
     public void init(NegotiationInfo info)
     {
-        AcceptanceStrategy ac  = new Group4AS();
-        OfferingStrategy   os  = new Group4OS();
-        OpponentModel      om  = new Group4OM();
-        OMStrategy         oms = new Group4OMS();
+        AcceptanceStrategy ac  = new group4.components.Group4AS();
+        OfferingStrategy   os  = new group4.components.Group4OS();
+        OpponentModel      om  = new group4.components.Group4OM();
+        OMStrategy         oms = new group4.components.Group4OMS();
 
         Map<String, Double> noparams = Collections.emptyMap();
 
@@ -42,10 +41,12 @@ public class Agent4 extends BoaParty {
         this.spaceInspect(additiveUtilitySpace);
 
 
-        /*ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
-        UncertainAdditiveUtilitySpace realUSpace = e. getRealUtilitySpace();
-        System.out.println("---------------------Real Userspace");
-        this.spaceInspect(realUSpace);*/
+//        opponentModel.init(negotiationSession, noparams);
+//        ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
+//        UncertainAdditiveUtilitySpace realUSpace = e.getRealUtilitySpace();
+//        System.out.println("---------------------Real Userspace");
+//        this.spaceInspect(realUSpace);
+
 
         this.updateUserParam(additiveUtilitySpace);
     }
@@ -133,6 +134,7 @@ public class Agent4 extends BoaParty {
         List<String> iVals = ivPairs();
         AtomicInteger k= new AtomicInteger(1);
         iVals.forEach(s -> lpw.addConstraint("v" + k.getAndIncrement(), 0, "<=").plus(s, 1.0));
+
         // Constraints: util of gloabl max bid is 1
         Bid maxBid = additiveUtilitySpace.getMaxUtilityBid();
         LPWizardConstraint lpwc = lpw.addConstraint("max", 1.0, "=");

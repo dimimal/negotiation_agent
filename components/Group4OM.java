@@ -34,6 +34,7 @@ public class Group4OM extends OpponentModel {
         opponentUtilitySpace = (AdditiveUtilitySpace) negotiationSession
                 .getUtilitySpace().copy();
 
+
         // TODO this below might be added in a different method
         List<Issue> issues = opponentUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
@@ -62,9 +63,11 @@ public class Group4OM extends OpponentModel {
         }
     }
 
+    @Override
     public double getBidEvaluation(Bid bid) {
         double lastBid = 0;
         try {
+            // TODO Update the weights in the op utility space
             lastBid = opponentUtilitySpace.getUtility(bid);
         } catch (Exception e) {
             e.printStackTrace();
@@ -121,6 +124,17 @@ public class Group4OM extends OpponentModel {
         lastOffer = opBid;
         this.updateFrequencies();
         this.updateIssueWeight();
+        this.updateEstimatedOpponentUtility();
+    }
+
+    private void updateEstimatedOpponentUtility() {
+        double estWeight = 0.0;
+        List<Issue> issues = opponentUtilitySpace.getDomain().getIssues();
+        for (Issue issue : issues) {
+            estWeight = issueOptionFrequecies.get(issue.getNumber()).get(ISSUE_WEIGHT).get(1);
+            opponentUtilitySpace.setWeight(issue, estWeight);
+        }
+
     }
 
     private void updateIssueWeight() {
