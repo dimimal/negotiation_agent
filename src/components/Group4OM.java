@@ -1,4 +1,4 @@
-package group4.components;
+package components;
 
 import genius.core.Bid;
 import genius.core.boaframework.NegotiationSession;
@@ -155,6 +155,13 @@ public class Group4OM extends OpponentModel {
         for(Integer i : issueOptionFrequecies.keySet()) {
             issueOptionFrequecies.get(i).get(ISSUE_WEIGHT).set(1, issueOptionFrequecies.get(i).get(ISSUE_WEIGHT).get(0) / weightSum);
         }
+    }
+
+    /*
+     *  Get the issue option frequencies
+     */
+    public HashMap<Integer, Map<String, List<Double>>> getIssueOptionFreqs() {
+        return this.issueOptionFrequecies;
     }
 
     @Override

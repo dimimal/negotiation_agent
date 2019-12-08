@@ -1,4 +1,4 @@
-package group4.components;
+package components;
 
 import genius.core.bidding.BidDetails;
 import genius.core.boaframework.NegotiationSession;
@@ -31,8 +31,9 @@ public class Group4OMS extends OMStrategy {
 
         double evalBid = 0.;
         double selectUtil = 0;
-        boolean isOpModelWork = true;
+        boolean isOpModelWork = false;
 
+        // Only one bid, return it
         if (bidsInRange.size() == 1) {
             return bidsInRange.get(0);
         }
@@ -42,7 +43,7 @@ public class Group4OMS extends OMStrategy {
         for (BidDetails bid : bidsInRange) {
             evalBid = opModel.getBidEvaluation(bid.getBid());
             if (evalBid > 0.0001) {
-                isOpModelWork = false;
+                isOpModelWork = true;
             }
             if (evalBid > selectUtil ) {
                 bestBid = bid;
@@ -50,9 +51,10 @@ public class Group4OMS extends OMStrategy {
             }
         }
 
-        if (isOpModelWork) {
+        if (!isOpModelWork) {
             Random random = new Random();
-            return bidsInRange.get(random.nextInt(bidsInRange.size()));
+            int randomInt = random.nextInt(bidsInRange.size());
+            return bidsInRange.get(randomInt);
         }
         return bestBid;
     }
@@ -63,7 +65,7 @@ public class Group4OMS extends OMStrategy {
     @Override
     public boolean canUpdateOM() {
 
-        if (negotiationSession.getTime() < 1.){
+        if (negotiationSession.getTime() < 1.1){
             return true;
         }
         else{
