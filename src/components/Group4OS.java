@@ -1,17 +1,19 @@
+
 package components;
 
 import genius.core.Bid;
-import genius.core.actions.Offer;
 import genius.core.bidding.BidDetails;
 import genius.core.boaframework.NegotiationSession;
 import genius.core.boaframework.OMStrategy;
 import genius.core.boaframework.OfferingStrategy;
 import genius.core.boaframework.OpponentModel;
-import genius.core.utility.AbstractUtilitySpace;
+import genius.core.issue.Issue;
+import genius.core.issue.IssueDiscrete;
+import genius.core.issue.ValueDiscrete;
 import genius.core.utility.AdditiveUtilitySpace;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -25,11 +27,16 @@ public class Group4OS extends OfferingStrategy {
     double lowValue = 0.6;
     int lastBid = 0; // Keep track of the last bid
     Bid bidValue;
-    private double agreeMentValue = 1;
+    public static double agreeMentValue;
     private AdditiveUtilitySpace ownUtilitySpace;
-    private List<BidStruct> feasibleBids;
-    
+    private List<components.BidStruct> feasibleBids;
+    private Utils utilities;
 
+    // TODO Remove these later!!
+    int[] issueOrder;
+    int[][] issueValOrder;
+
+    @Override
     public void init(NegotiationSession negoSession, OpponentModel model, OMStrategy oms,
                      Map<String, Double> parameters) throws Exception {
         super.init(negoSession, model, oms, parameters);
@@ -37,7 +44,12 @@ public class Group4OS extends OfferingStrategy {
         this.ownUtilitySpace = (AdditiveUtilitySpace) negoSession.getUtilitySpace();
         this.opponentModel = model;
         this.omStrategy = oms;
-        this.feasibleBids = getFeasibleBids();
+        this.utilities = new Utils();
+        this.issueOrder = utilities.calcOrderOfIssues(ownUtilitySpace);
+        this.issueValOrder = utilities.calcOrderOfIssueVals(ownUtilitySpace);
+        this.feasibleBids = getFeasibleBidsList();
+        this.agreeMentValue = parameters.get("av");
+
 
     }
     /**
@@ -58,27 +70,31 @@ public class Group4OS extends OfferingStrategy {
     @Override
     public BidDetails determineNextBid() {
         opCare *= 1.004;
-        BidDetails b = getNewBid();
+        // agreeMentValue = getParameterSpec().size();
+        BidDetails offerBid = getNewBid();
 
         agentToFavor += 1;
         agentToFavor = agentToFavor % 2;
 
-        // Offer??
-        return  b;
+        return  offerBid;
 
     }
 
     /*
-      Returns the generated bid acording to the pseudo code from Johnny black bidding strategy
+      Returns the generated bid according to the pseudo code from Johnny black bidding strategy
      */
     public BidDetails getNewBid() {
         for (int i = lastBid + 1; i < feasibleBids.size(); i++) {
-            BidStruct bh = feasibleBids.get(i);
-            if (bh.value > agreeMentValue && opponentModel.getBidEvaluation(bh.bid) > opCare) {
+            components.BidStruct fsBid = feasibleBids.get(i);
+            if (fsBid.value > agreeMentValue && agentToFavor == 0 && ownUtilitySpace.getUtility(fsBid.bid) > opCare) {
                 lastBid = i;
-                return new BidDetails(bh.bid, bh.value);
+                return new BidDetails(fsBid.bid, fsBid.value);
             }
-            if (bh.value < agreeMentValue)
+            else if (fsBid.value > agreeMentValue && agentToFavor == 1 && opponentModel.getBidEvaluation(fsBid.bid) > opCare) {
+                lastBid = i;
+                return new BidDetails(fsBid.bid, fsBid.value);
+            }
+            if (fsBid.value < agreeMentValue)
                 break;
         }
 
@@ -91,69 +107,44 @@ public class Group4OS extends OfferingStrategy {
      */
     @Override
     public String getName() {
-        return null;
+        return "JB Bidding";
     }
 
-    public List<BidStruct> getFeasibleBids() {
-        List<BidStruct> bids = new ArrayList<BidStruct>();
+    public List<components.BidStruct> getFeasibleBidsList() throws Exception {
+        List<components.BidStruct> bids = new ArrayList<components.BidStruct>();
         // TODO Own utility or op utility
-        // Bid bid =  opponentModel.getOpponentUtilitySpace().getMaxUtilityBid() //Functions.getCopyOfBestBid((AdditiveUtilitySpace) utilitySpace);
-        bids = getTheBestBid();// recurseBids(bid, bids, 0);
-        System.out.println("List Size:" + bids.size());
+        Bid bid =  ownUtilitySpace.getMaxUtilityBid();
+        Bid b1 = new Bid(bid);
+        // Ierate all issues
+        List<Issue> issues = ownUtilitySpace.getDomain().getIssues();
+        for (Issue issue : issues) {
+            int issueNumber = issue.getNumber();
+            if (issueNumber >= issueOrder.length) break;
+            for (int i = 0; i < issueValOrder[issueOrder[issueNumber]].length; ++i) {
+                int issueID = issueOrder[issueNumber];
+                int item = issueValOrder[issueID][i] - 1;
+                try {
+                    ValueDiscrete issueValue = ((IssueDiscrete) ownUtilitySpace.getIssue(issueID)).getValue(item);
+                    b1 = b1.putValue(issueID+1, issueValue);
+                    if (ownUtilitySpace.getUtility(b1) > lowValue) {
+                        bids.add(new components.BidStruct(b1, ownUtilitySpace.getUtility(b1)));
+                    }
+                }
+                catch (Exception e) {
+                    System.out.println(1);
+                    continue;
+                }
+
+            }
+        }
+        // System.out.println("List Size:" + bids.size());
+        Collections.sort(bids);
         return bids;
     }
 
-    public List<BidStruct> getTheBestBid() {
-        List<BidStruct> feasibleBids = new ArrayList<BidStruct>();
-        HashMap<Integer, Map<String, List<Double>>> issueFreqs = opponentModel.getIssueOptionFreqs();
 
-        // Extract the normalized estimated weight
-        for (Integer i : issueFreqs.keySet()) {
-            System.out.println(issueFreqs.keySet());
-            System.out.println("Issue freq: " + issueFreqs.get(i).get("ISSUE_WEIGHT").get(1));
 
-            // return this.getTheBestBid();
-        }
-    }
-
-    public double getAgreementValue() {
-        return this.agreeMentValue;
-    }
-
-    public double setAgreementValue(double value) {
-        this.agreeMentValue = value;
-    }
-
-    public class BidStruct {
-        Bid bid;
-        double value;
-    }
 }
 
 
 
-
-//    public Vector<BidHolder> recurseBids(Bid b, Vector<BidHolder> v, int is) {
-//        Vector<BidHolder> v1 = new Vector<BidHolder>();
-//        if (is == issueOrder.length) {
-//            BidHolder bh = new BidHolder();
-//            bh.b = b;
-//            bh.v = Functions.getBidValue((AdditiveUtilitySpace) utilitySpace,
-//                    b);
-//            v1.addElement(bh);
-//
-//            return v1;
-//        }
-//        for (int i = 0; i < issueValOrder[issueOrder[is]].length; i++) {
-//            Bid b1 = new Bid(b);
-//            int issueID = issueOrder[is];
-//            int item = issueValOrder[issueID][i] - 1;
-//            ValueDiscrete val = Functions.getVal((AdditiveUtilitySpace) utilitySpace, issueID, item);
-//            b1 = b1.putValue(issueID + 1, val);
-//            if (Functions.getBidValue((AdditiveUtilitySpace) utilitySpace,
-//                    b1) > this.finalStopVal) {
-//                v1.addAll(recurseBids(b1, v1, is + 1));
-//            }
-//        }
-//        return v1;
-//    }

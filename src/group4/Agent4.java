@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 //import group4.components.*;
 
 
-
+@SuppressWarnings({"serial", "deprecation"})
 public class Agent4 extends BoaParty {
     private Map<String, Double> issueValUtils = new HashMap<>();
     //private Map<String, Double> realValUtils = new HashMap<>();
@@ -33,20 +33,21 @@ public class Agent4 extends BoaParty {
     @Override
     public void init(NegotiationInfo info)
     {
-
-        //OfferingStrategy 	os  = new TimeDependent_Offering();
-        OpponentModel      om  = new Group4OM();
         AcceptanceStrategy ac  = new Group4AS();
         OfferingStrategy   os  = new Group4OS();
+        // OfferingStrategy 	os  = new TimeDependent_Offering();
+        OpponentModel      om  = new Group4OM();
         OMStrategy         oms = new Group4OMS();
+        //OMStrategy         oms = new NullStrategy();
 
         Map<String, Double> noparams = Collections.emptyMap();
         Map<String, Double> osParams = new HashMap<String, Double>();
 
         osParams.put("e", 0.2);
+        osParams.put("av", 1.0);
 
-
-        configure(ac, noparams, os, osParams, om, noparams, oms, noparams);
+        configure(ac, osParams, os, osParams, om, noparams, oms, noparams);
+        //configure(ac, osParams, os, osParams, om, noparams, null, null);
         super.init(info);
 
         AbstractUtilitySpace utilitySpace = info.getUtilitySpace();

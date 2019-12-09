@@ -11,11 +11,13 @@ import java.util.Random;
 
 public class Group4OMS extends OMStrategy {
     OpponentModel opModel;
+    private NegotiationSession negotiationSession;
 
     @Override
     public void init(NegotiationSession negotiationSession, OpponentModel model, Map<String, Double> parameters) {
-        super.init(negotiationSession, model, parameters);
-        opModel = model;
+        // super.init(negotiationSession, model, parameters);
+        this.negotiationSession = negotiationSession;
+        this.opModel = model;
     }
 
     /**
@@ -27,8 +29,6 @@ public class Group4OMS extends OMStrategy {
      */
     @Override
     public BidDetails getBid(List<BidDetails> bidsInRange) {
-
-
         double evalBid = 0.;
         double selectUtil = 0;
         boolean isOpModelWork = false;
@@ -65,7 +65,7 @@ public class Group4OMS extends OMStrategy {
     @Override
     public boolean canUpdateOM() {
 
-        if (negotiationSession.getTime() < 1.1){
+        if (this.negotiationSession.getTime() < 1.1){
             return true;
         }
         else{

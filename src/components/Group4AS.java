@@ -1,25 +1,24 @@
 package components;
 
 import genius.core.Bid;
-import genius.core.actions.Action;
+import genius.core.bidding.BidDetails;
 import genius.core.boaframework.*;
-import genius.core.utility.AbstractUtilitySpace;
+import genius.core.uncertainty.UserModel;
 import genius.core.utility.AdditiveUtilitySpace;
-import sun.nio.cs.ext.MacGreek;
 
-import javax.naming.ldap.PagedResultsControl;
-import java.util.Map;
+import java.util.*;
 
 public class Group4AS extends AcceptanceStrategy {
 
     private double discount = 1.0;
     private AdditiveUtilitySpace utilitySpace;
     public double discountThreshold = 0.845;
-    //public double discountThreshold = 0.75;
+    private double motValue = 0.6;
     double reluctance = 1.1;
     int nBidsToConsiderFromOp = 100;
     int round = 0;
-    public double agreementValue;
+    public double agreeMentValue;
+    private UserModel userModelSpace;
 
     public Group4AS() {
     }
@@ -34,13 +33,14 @@ public class Group4AS extends AcceptanceStrategy {
 
     @Override
     public void init(NegotiationSession negoSession, OfferingStrategy strat, OpponentModel om, Map<String, Double> parameters) throws Exception {
-        super.init(negoSession, strat, om, parameters);
-        this.negotiationSession = negoSession;
+        // super.init(negoSession, strat, om, parameters);
+        negotiationSession = negoSession;
         offeringStrategy = strat;
         opponentModel = om;
         utilitySpace = (AdditiveUtilitySpace) opponentModel.getOpponentUtilitySpace();
-        this.agreementValue = offeringStrategy.getAgreementValue();
+        agreeMentValue = parameters.get("av");
 
+        userModelSpace = negotiationSession.getUserModel();
         if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
             discount = utilitySpace.getDiscountFactor();
 
@@ -75,7 +75,7 @@ public class Group4AS extends AcceptanceStrategy {
         return Actions.Reject;
     }
 
-    private boolean isAcceptable(double offeredUtilFromOpponent, double myOfferedUtil, double time, Bid oppBid) throws Exception {
+    public boolean isAcceptable(double offeredUtilFromOpponent, double myOfferedUtil, double time, Bid oppBid) throws Exception {
 
 //        if (offeredUtilFromOpponent >= myOfferedUtil) {
 //            return true;
@@ -86,10 +86,7 @@ public class Group4AS extends AcceptanceStrategy {
 
         // Every 10 rounds update the AV and bids to consider for the opponent
         if (round % 10 == 0) {
-            //agreeMentValue = Functions.calcStopVal(parties, nBidsToConsiderFromOp, (AdditiveUtilitySpace) utilitySpace);
-            agreeMentValue = this.calcStopVal(nBidsToConsiderFromOp, this.opponentModel.getOpponentUtilitySpace());
-            offeringStrategy().setAgreementValue(agreeMentValue);
-            // System.out.println(getPartyId());
+            agreeMentValue = this.computeAVThreshold(nBidsToConsiderFromOp);
             reluctance *= .995;
             System.out.println(reluctance);
             agreeMentValue *= reluctance;
@@ -100,6 +97,9 @@ public class Group4AS extends AcceptanceStrategy {
                 nBidsToConsiderFromOp -= 5;
             }
             System.out.println(nBidsToConsiderFromOp);
+
+            // Update agreementValue
+            ((Group4OS) this.offeringStrategy).agreeMentValue = this.agreeMentValue;
         }
 
         double d = 0;
@@ -129,46 +129,60 @@ public class Group4AS extends AcceptanceStrategy {
 //        return false;
     }
 
-    public boolean bidAlreadyMade(Bid a) {
-        boolean result = false;
-        for (int i = 0; i < negotiationSession.getOwnBidHistory().size(); i++) {
-            if (a.equals(negotiationSession.getOwnBidHistory().getHistory().get(i).getBid())) {
-                result = true;
-            }
-        }
-        return result;
-    }
+//    public boolean bidAlreadyMade(Bid a) {
+//        boolean result = false;
+//        for (int i = 0; i < negotiationSession.getOwnBidHistory().size(); i++) {
+//            if (a.equals(negotiationSession.getOwnBidHistory().getHistory().get(i).getBid())) {
+//                result = true;
+//            }
+//        }
+//        return result;
+//    }
 
     /*
      Take into account both own and op utility space
      */
-    private double calcStopVal(int numOfBids) {
+    private double computeAVThreshold(int numOfBids) {
+        List<components.BidStruct> topNbids = new ArrayList<>();
+        List<Bid> bidsHistory = new ArrayList<>();
 
-        Vector<BidHolder> topNbids = new Vector<BidHolder>();
-        for (int i = 0; i < n && i < parties.get(0).orderedBids.size(); i++) {
-            topNbids.add(parties.get(0).orderedBids.get(i));
+        bidsHistory = userModelSpace.getBidRanking().getBidOrder();
+        Collections.reverse(bidsHistory);
+        List<BidDetails> tempOpBids = negotiationSession.getOpponentBidHistory().getNBestBids(numOfBids);
+        List<components.BidStruct> opponentBids = new ArrayList<>();
+
+        for (int i=0; i<numOfBids && i<tempOpBids.size(); ++i) {
+            opponentBids.add(new components.BidStruct(tempOpBids.get(i).getBid(), opponentModel.getBidEvaluation(tempOpBids.get(i).getBid())));
+        }
+
+        for (int i = 0; i < numOfBids && i < bidsHistory.size(); i++) {
+            topNbids.add(new components.BidStruct(bidsHistory.get(i), utilitySpace.getUtility(bidsHistory.get(i))));
         }
         for (int i = 0; i < topNbids.size(); i++) {
-            for (Party p : parties) {
-                if (p.orderedBids.indexOf(topNbids.get(i)) > numOfBids
-                        || p.orderedBids.indexOf(topNbids.get(i)) == -1) {
+                if (opponentBids.indexOf(topNbids.get(i)) > numOfBids || opponentBids.indexOf(topNbids.get(i)) == -1) {
                     topNbids.remove(i);
                     i--;
                     break;
                 }
-            }
         }
+
         System.out.println("Common Bids : " + topNbids.size());
-        double max = 0;
-        for (BidHolder b : topNbids) {
-            double v = opponentModel.getBidEvaluation(); // Functions.getBidValue(us, b.b);
-            if (v > max)
-                max = v;
+        double maximumValue = 0;
+        for (components.BidStruct b : topNbids) {
+            double bidValue = b.value;
+            if (bidValue > maximumValue)
+                maximumValue = bidValue;
         }
-        // Select the greates of max and MOT
-        return Math.max(max, 0.6);
+        // Select the greater of max and MOT
+        return Math.max(maximumValue, motValue);
     }
 
+//    @Override
+//    public Set<BOAparameter> getParameterSpec() {
+//        Set<BOAparameter> set = new HashSet<BOAparameter>();
+//        set.add(new BOAparameter("av", this.agreeMentValue, "Updated Agreement Value"));
+//        return set;
+//    }
 
 
     @Override
