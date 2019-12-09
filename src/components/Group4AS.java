@@ -10,15 +10,16 @@ import java.util.*;
 
 public class Group4AS extends AcceptanceStrategy {
 
-    private double discount = 1.0;
+    // private double discount = 1.0;
     private AdditiveUtilitySpace utilitySpace;
-    public double discountThreshold = 0.845;
+//    public double discountThreshold = 0.845;
     private double motValue = 0.6;
     double reluctance = 1.1;
     int nBidsToConsiderFromOp = 100;
     int round = 0;
     public double agreeMentValue;
     private UserModel userModelSpace;
+    private int roundInterval = 5;
 
     public Group4AS() {
     }
@@ -41,8 +42,8 @@ public class Group4AS extends AcceptanceStrategy {
         agreeMentValue = parameters.get("av");
 
         userModelSpace = negotiationSession.getUserModel();
-        if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
-            discount = utilitySpace.getDiscountFactor();
+//        if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
+//            discount = utilitySpace.getDiscountFactor();
 
     }
 
@@ -50,8 +51,8 @@ public class Group4AS extends AcceptanceStrategy {
     public Actions determineAcceptability() {
         Bid partnerBid = negotiationSession.getOpponentBidHistory().getLastBid();
         double time = negotiationSession.getTime();
-        if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
-            discount = utilitySpace.getDiscountFactor();
+//        if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
+//            discount = utilitySpace.getDiscountFactor();
 //        if (time > 0.97) {
 //            if (bidAlreadyMade(partnerBid)) {
 //                return Actions.Accept;
@@ -82,10 +83,12 @@ public class Group4AS extends AcceptanceStrategy {
 //        }
 //
 //        return false;
+
+        double bidValue = 0;
         round += 1;
 
         // Every 10 rounds update the AV and bids to consider for the opponent
-        if (round % 10 == 0) {
+        if (round % roundInterval == 0) {
             agreeMentValue = this.computeAVThreshold(nBidsToConsiderFromOp);
             reluctance *= .995;
             System.out.println(reluctance);
@@ -93,7 +96,7 @@ public class Group4AS extends AcceptanceStrategy {
             if (agreeMentValue >= 1)
                 agreeMentValue = 0.99;
             System.out.println("Agreement  Value = " + agreeMentValue);
-            if (nBidsToConsiderFromOp > 10) {
+            if (nBidsToConsiderFromOp > roundInterval) {
                 nBidsToConsiderFromOp -= 5;
             }
             System.out.println(nBidsToConsiderFromOp);
@@ -102,12 +105,11 @@ public class Group4AS extends AcceptanceStrategy {
             ((Group4OS) this.offeringStrategy).agreeMentValue = this.agreeMentValue;
         }
 
-        double d = 0;
         if (oppBid != null)
-            d = utilitySpace.getUtility(oppBid);
+            bidValue = utilitySpace.getUtility(oppBid);
 
-        // System.out.println(d);
-        if (d >= agreeMentValue)
+        // System.out.println(bidValue);
+        if (bidValue >= agreeMentValue)
             // return new Accept(getPartyId(), lastBid);
             return true;
         else{
@@ -143,32 +145,32 @@ public class Group4AS extends AcceptanceStrategy {
      Take into account both own and op utility space
      */
     private double computeAVThreshold(int numOfBids) {
-        List<components.BidStruct> topNbids = new ArrayList<>();
-        List<Bid> bidsHistory = new ArrayList<>();
+//        List<Bid> bidsHistory = new ArrayList<>();
+        List<components.BidStruct> allBestBids = new ArrayList<>();
 
-        bidsHistory = userModelSpace.getBidRanking().getBidOrder();
-        Collections.reverse(bidsHistory);
+//        bidsHistory = userModelSpace.getBidRanking().getBidOrder();
+//        Collections.reverse(bidsHistory);
         List<BidDetails> tempOpBids = negotiationSession.getOpponentBidHistory().getNBestBids(numOfBids);
         List<components.BidStruct> opponentBids = new ArrayList<>();
 
         for (int i=0; i<numOfBids && i<tempOpBids.size(); ++i) {
             opponentBids.add(new components.BidStruct(tempOpBids.get(i).getBid(), opponentModel.getBidEvaluation(tempOpBids.get(i).getBid())));
         }
-
-        for (int i = 0; i < numOfBids && i < bidsHistory.size(); i++) {
-            topNbids.add(new components.BidStruct(bidsHistory.get(i), utilitySpace.getUtility(bidsHistory.get(i))));
-        }
-        for (int i = 0; i < topNbids.size(); i++) {
-                if (opponentBids.indexOf(topNbids.get(i)) > numOfBids || opponentBids.indexOf(topNbids.get(i)) == -1) {
-                    topNbids.remove(i);
+// TODO Probably useless!!!
+//        for (int i = 0; i < numOfBids && i < bidsHistory.size(); i++) {
+//            allBestBids.add(new components.BidStruct(bidsHistory.get(i), utilitySpace.getUtility(bidsHistory.get(i))));
+//        }
+        for (int i = 0; i < allBestBids.size(); i++) {
+                if (opponentBids.indexOf(allBestBids.get(i)) > numOfBids || opponentBids.indexOf(allBestBids.get(i)) == -1) {
+                    allBestBids.remove(i);
                     i--;
                     break;
                 }
         }
 
-        System.out.println("Common Bids : " + topNbids.size());
+        System.out.println("Top Bids : " + allBestBids.size());
         double maximumValue = 0;
-        for (components.BidStruct b : topNbids) {
+        for (components.BidStruct b : allBestBids) {
             double bidValue = b.value;
             if (bidValue > maximumValue)
                 maximumValue = bidValue;

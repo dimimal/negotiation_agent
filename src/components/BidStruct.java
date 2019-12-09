@@ -20,7 +20,7 @@ public class BidStruct implements Comparable<BidStruct>  {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return bid.equals(((BidStruct)obj).bid);
+    public boolean equals(Object input) {
+        return bid.equals(((BidStruct)input).bid);
     }
 }

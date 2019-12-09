@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings({"serial", "deprecation"})
 public class Agent4 extends BoaParty {
     private Map<String, Double> issueValUtils = new HashMap<>();
-    //private Map<String, Double> realValUtils = new HashMap<>();
+    private Map<String, Double> realValUtils = new HashMap<>();
 
     @Override
     public void init(NegotiationInfo info)
@@ -56,17 +56,18 @@ public class Agent4 extends BoaParty {
 
         //this.spaceInspect(additiveUtilitySpace);
 
-        /*for(Bid bid : userModel.getBidRanking().getBidOrder()) {
-            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.utilityEstimate(bid));
-        }*/
-
-        /*ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
-        UncertainAdditiveUtilitySpace realUSpace = e.getRealUtilitySpace();
-        System.out.println("---------------------Real Userspace");
-        this.spaceInspect(realUSpace);
-        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
-            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.realUtilityEstimate(bid));
-        }*/
+        // TODO Remove this ! Debug only !!
+//        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
+//            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.utilityEstimate(bid));
+//        }
+//
+//        ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
+//        UncertainAdditiveUtilitySpace realUSpace = e.getRealUtilitySpace();
+//        System.out.println("---------------------Real Userspace");
+//        this.spaceInspect(realUSpace);
+//        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
+//            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.realUtilityEstimate(bid));
+//        }
 
     }
 
@@ -154,13 +155,13 @@ public class Agent4 extends BoaParty {
         return util;
     }
 
-    /*public double realUtilityEstimate(Bid bid) {
+    public double realUtilityEstimate(Bid bid) {
         double util = 0.0;
         for(Issue issue : bid.getIssues()) {
             util += this.realValUtils.get(issue.getName() + bid.getValue(issue).toString());
         }
         return util;
-    }*/
+    }
 
 
     private void lpMethod(List<Bid> bids) throws Exception {

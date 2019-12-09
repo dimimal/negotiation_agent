@@ -45,8 +45,8 @@ public class Group4OS extends OfferingStrategy {
         this.opponentModel = model;
         this.omStrategy = oms;
         this.utilities = new Utils();
-        this.issueOrder = utilities.calcOrderOfIssues(ownUtilitySpace);
-        this.issueValOrder = utilities.calcOrderOfIssueVals(ownUtilitySpace);
+        this.issueOrder = utilities.getOrderedIssues(ownUtilitySpace);
+        this.issueValOrder = utilities.getOrderedIssueValues(ownUtilitySpace);
         this.feasibleBids = getFeasibleBidsList();
         this.agreeMentValue = parameters.get("av");
 
@@ -86,11 +86,12 @@ public class Group4OS extends OfferingStrategy {
     public BidDetails getNewBid() {
         for (int i = lastBid + 1; i < feasibleBids.size(); i++) {
             components.BidStruct fsBid = feasibleBids.get(i);
-            if (fsBid.value > agreeMentValue && agentToFavor == 0 && ownUtilitySpace.getUtility(fsBid.bid) > opCare) {
-                lastBid = i;
-                return new BidDetails(fsBid.bid, fsBid.value);
-            }
-            else if (fsBid.value > agreeMentValue && agentToFavor == 1 && opponentModel.getBidEvaluation(fsBid.bid) > opCare) {
+//            if (fsBid.value > agreeMentValue && agentToFavor == 0 && ownUtilitySpace.getUtility(fsBid.bid) > opCare) {
+//                lastBid = i;
+//                return new BidDetails(fsBid.bid, fsBid.value);
+//            }
+//            else
+            if (fsBid.value > agreeMentValue && opponentModel.getBidEvaluation(fsBid.bid) > opCare) {
                 lastBid = i;
                 return new BidDetails(fsBid.bid, fsBid.value);
             }
@@ -111,10 +112,10 @@ public class Group4OS extends OfferingStrategy {
     }
 
     public List<components.BidStruct> getFeasibleBidsList() throws Exception {
-        List<components.BidStruct> bids = new ArrayList<components.BidStruct>();
+        List<components.BidStruct> validBids = new ArrayList<components.BidStruct>();
         // TODO Own utility or op utility
         Bid bid =  ownUtilitySpace.getMaxUtilityBid();
-        Bid b1 = new Bid(bid);
+        Bid tempBid = new Bid(bid);
         // Ierate all issues
         List<Issue> issues = ownUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
@@ -125,9 +126,9 @@ public class Group4OS extends OfferingStrategy {
                 int item = issueValOrder[issueID][i] - 1;
                 try {
                     ValueDiscrete issueValue = ((IssueDiscrete) ownUtilitySpace.getIssue(issueID)).getValue(item);
-                    b1 = b1.putValue(issueID+1, issueValue);
-                    if (ownUtilitySpace.getUtility(b1) > lowValue) {
-                        bids.add(new components.BidStruct(b1, ownUtilitySpace.getUtility(b1)));
+                    tempBid = tempBid.putValue(issueID+1, issueValue);
+                    if (ownUtilitySpace.getUtility(tempBid) > lowValue) {
+                        validBids.add(new components.BidStruct(tempBid, ownUtilitySpace.getUtility(tempBid)));
                     }
                 }
                 catch (Exception e) {
@@ -137,9 +138,9 @@ public class Group4OS extends OfferingStrategy {
 
             }
         }
-        // System.out.println("List Size:" + bids.size());
-        Collections.sort(bids);
-        return bids;
+        // System.out.println("List Size:" + validBids.size());
+        Collections.sort(validBids);
+        return validBids;
     }
 
 

@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+/*
+* This module is based on the example from exampleWiki module
+* */
+
 public class Group4OMS extends OMStrategy {
     OpponentModel opModel;
     private NegotiationSession negotiationSession;
@@ -30,7 +34,7 @@ public class Group4OMS extends OMStrategy {
     @Override
     public BidDetails getBid(List<BidDetails> bidsInRange) {
         double evalBid = 0.;
-        double selectUtil = 0;
+        double maxUtil = 0;
         boolean isOpModelWork = false;
 
         // Only one bid, return it
@@ -45,9 +49,9 @@ public class Group4OMS extends OMStrategy {
             if (evalBid > 0.0001) {
                 isOpModelWork = true;
             }
-            if (evalBid > selectUtil ) {
+            if (evalBid > maxUtil ) {
                 bestBid = bid;
-                selectUtil = evalBid;
+                maxUtil = evalBid;
             }
         }
 
