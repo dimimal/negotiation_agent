@@ -127,7 +127,8 @@ public class Group4OM extends OpponentModel {
         this.updateEstimatedOpponentUtility();
     }
 
-    /* Place the estimated opponent utility weights into oppoonent utility space
+    /*
+     * Place the estimated opponent utility weights into oppoonent utility space
      */
     private void updateEstimatedOpponentUtility() {
         double estWeight = 0.0;

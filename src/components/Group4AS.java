@@ -1,25 +1,33 @@
 package components;
 
 import genius.core.Bid;
+import genius.core.analysis.BidSpace;
 import genius.core.bidding.BidDetails;
 import genius.core.boaframework.*;
 import genius.core.uncertainty.UserModel;
 import genius.core.utility.AdditiveUtilitySpace;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class Group4AS extends AcceptanceStrategy {
 
     // private double discount = 1.0;
+    private BidSpace utilityBidSpace;
     private AdditiveUtilitySpace utilitySpace;
 //    public double discountThreshold = 0.845;
-    private double motValue = 0.6;
+    private double motValue = 0.62;
     double reluctance = 1.1;
     int nBidsToConsiderFromOp = 100;
     int round = 0;
     public double agreeMentValue;
     private UserModel userModelSpace;
-    private int roundInterval = 5;
+    private int roundInterval = 3;
+
+
+
 
     public Group4AS() {
     }
@@ -40,10 +48,9 @@ public class Group4AS extends AcceptanceStrategy {
         opponentModel = om;
         utilitySpace = (AdditiveUtilitySpace) opponentModel.getOpponentUtilitySpace();
         agreeMentValue = parameters.get("av");
+        utilityBidSpace = new BidSpace(utilitySpace, om.getOpponentUtilitySpace());
 
         userModelSpace = negotiationSession.getUserModel();
-//        if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
-//            discount = utilitySpace.getDiscountFactor();
 
     }
 
@@ -87,11 +94,15 @@ public class Group4AS extends AcceptanceStrategy {
         double bidValue = 0;
         round += 1;
 
-        // Every 10 rounds update the AV and bids to consider for the opponent
+        utilityBidSpace = new BidSpace(utilitySpace, opponentModel.getOpponentUtilitySpace());
+//        System.out.printf("Nash Point: %s%n", utilityBidSpace.getNash().toString());
+//        System.out.printf("Oponent Nash Utility: %s%n", utilityBidSpace.getNash().);
+
+        // Every Interval rounds update the AV and bids to consider for the opponent
         if (round % roundInterval == 0) {
             agreeMentValue = this.computeAVThreshold(nBidsToConsiderFromOp);
             reluctance *= .995;
-            System.out.println(reluctance);
+            System.out.println("Reluctance: " + reluctance);
             agreeMentValue *= reluctance;
             if (agreeMentValue >= 1)
                 agreeMentValue = 0.99;
@@ -108,9 +119,8 @@ public class Group4AS extends AcceptanceStrategy {
         if (oppBid != null)
             bidValue = utilitySpace.getUtility(oppBid);
 
-        // System.out.println(bidValue);
+         System.out.println("bidValue: " + bidValue + " || AgreemValue: " + agreeMentValue);
         if (bidValue >= agreeMentValue)
-            // return new Accept(getPartyId(), lastBid);
             return true;
         else{
             return false;
@@ -145,22 +155,31 @@ public class Group4AS extends AcceptanceStrategy {
      Take into account both own and op utility space
      */
     private double computeAVThreshold(int numOfBids) {
-//        List<Bid> bidsHistory = new ArrayList<>();
-        List<components.BidStruct> allBestBids = new ArrayList<>();
-
-//        bidsHistory = userModelSpace.getBidRanking().getBidOrder();
-//        Collections.reverse(bidsHistory);
-        List<BidDetails> tempOpBids = negotiationSession.getOpponentBidHistory().getNBestBids(numOfBids);
         List<components.BidStruct> opponentBids = new ArrayList<>();
+        List<components.BidStruct> orderedUserBids = new ArrayList<>();
+
+        List<Bid> bidsHistory = userModelSpace.getBidRanking().getBidOrder();
+        List<components.BidStruct> allBestBids = new ArrayList<>();
+        List<BidDetails> tempOpBids = negotiationSession.getOpponentBidHistory().getNBestBids(numOfBids);
+
+        // Create ordered user bids
+        for (Bid b: bidsHistory) {
+            orderedUserBids.add(new components.BidStruct(b, utilitySpace.getUtility(b)));
+        }
+        Collections.sort(orderedUserBids);
 
         for (int i=0; i<numOfBids && i<tempOpBids.size(); ++i) {
-            opponentBids.add(new components.BidStruct(tempOpBids.get(i).getBid(), opponentModel.getBidEvaluation(tempOpBids.get(i).getBid())));
+            opponentBids.add(new components.BidStruct(tempOpBids.get(i).getBid(),
+                    opponentModel.getBidEvaluation(tempOpBids.get(i).getBid())));
         }
-// TODO Probably useless!!!
-//        for (int i = 0; i < numOfBids && i < bidsHistory.size(); i++) {
-//            allBestBids.add(new components.BidStruct(bidsHistory.get(i), utilitySpace.getUtility(bidsHistory.get(i))));
-//        }
+        Collections.sort(opponentBids);
+
+        for (int i = 0; i < numOfBids && i < orderedUserBids.size(); i++) {
+            allBestBids.add(orderedUserBids.get(i));
+        }
+
         for (int i = 0; i < allBestBids.size(); i++) {
+                // If opponents bid not in my preference, remove it.
                 if (opponentBids.indexOf(allBestBids.get(i)) > numOfBids || opponentBids.indexOf(allBestBids.get(i)) == -1) {
                     allBestBids.remove(i);
                     i--;
@@ -171,21 +190,13 @@ public class Group4AS extends AcceptanceStrategy {
         System.out.println("Top Bids : " + allBestBids.size());
         double maximumValue = 0;
         for (components.BidStruct b : allBestBids) {
-            double bidValue = b.value;
-            if (bidValue > maximumValue)
-                maximumValue = bidValue;
+            if (b.value > maximumValue)
+                maximumValue = b.value;
         }
         // Select the greater of max and MOT
+        System.out.println("Maximum Value: " + maximumValue);
         return Math.max(maximumValue, motValue);
     }
-
-//    @Override
-//    public Set<BOAparameter> getParameterSpec() {
-//        Set<BOAparameter> set = new HashSet<BOAparameter>();
-//        set.add(new BOAparameter("av", this.agreeMentValue, "Updated Agreement Value"));
-//        return set;
-//    }
-
 
     @Override
     public String getName() {

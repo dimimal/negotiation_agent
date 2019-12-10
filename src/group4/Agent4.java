@@ -23,12 +23,14 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 //import group4.components.*;
+//import net.xoroth.boacomponents.*;
 
 
-@SuppressWarnings({"serial", "deprecation"})
+
 public class Agent4 extends BoaParty {
     private Map<String, Double> issueValUtils = new HashMap<>();
-    private Map<String, Double> realValUtils = new HashMap<>();
+    private AdditiveUtilitySpace additiveUtilitySpace;
+    //private Map<String, Double> realValUtils = new HashMap<>();
 
     @Override
     public void init(NegotiationInfo info)
@@ -38,7 +40,6 @@ public class Agent4 extends BoaParty {
         // OfferingStrategy 	os  = new TimeDependent_Offering();
         OpponentModel      om  = new Group4OM();
         OMStrategy         oms = new Group4OMS();
-        //OMStrategy         oms = new NullStrategy();
 
         Map<String, Double> noparams = Collections.emptyMap();
         Map<String, Double> osParams = new HashMap<String, Double>();
@@ -47,27 +48,25 @@ public class Agent4 extends BoaParty {
         osParams.put("av", 1.0);
 
         configure(ac, osParams, os, osParams, om, noparams, oms, noparams);
-        //configure(ac, osParams, os, osParams, om, noparams, null, null);
         super.init(info);
 
         AbstractUtilitySpace utilitySpace = info.getUtilitySpace();
-        AdditiveUtilitySpace additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
+        additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
         System.out.println("---------------------Default Estimated Userspace");
 
         //this.spaceInspect(additiveUtilitySpace);
 
-        // TODO Remove this ! Debug only !!
-//        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
-//            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.utilityEstimate(bid));
-//        }
-//
-//        ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
-//        UncertainAdditiveUtilitySpace realUSpace = e.getRealUtilitySpace();
-//        System.out.println("---------------------Real Userspace");
-//        this.spaceInspect(realUSpace);
-//        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
-//            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.realUtilityEstimate(bid));
-//        }
+        /*for(Bid bid : userModel.getBidRanking().getBidOrder()) {
+            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.utilityEstimate(bid));
+        }*/
+
+        /*ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
+        UncertainAdditiveUtilitySpace realUSpace = e.getRealUtilitySpace();
+        System.out.println("---------------------Real Userspace");
+        this.spaceInspect(realUSpace);
+        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
+            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.realUtilityEstimate(bid));
+        }*/
 
     }
 
@@ -155,13 +154,13 @@ public class Agent4 extends BoaParty {
         return util;
     }
 
-    public double realUtilityEstimate(Bid bid) {
+    /*public double realUtilityEstimate(Bid bid) {
         double util = 0.0;
         for(Issue issue : bid.getIssues()) {
             util += this.realValUtils.get(issue.getName() + bid.getValue(issue).toString());
         }
         return util;
-    }
+    }*/
 
 
     private void lpMethod(List<Bid> bids) throws Exception {
@@ -199,11 +198,11 @@ public class Agent4 extends BoaParty {
             lpwc.plus(issue.getName() + maxBid.getValue(issue).toString(), 1.0);
         }
         // CONSTRAINT: util of gloabl min bid is 0
-        /*Bid minBid = additiveUtilitySpace.getMinUtilityBid();
-        lpwc = lpw.addConstraint("min", 0.0, "=");
+        Bid minBid = userModel.getBidRanking().getMinimalBid();
+        lpwc = lpw.addConstraint("min", userModel.getBidRanking().getLowUtility(), "=");
         for(Issue issue : issues) {
             lpwc.plus(issue.getName() + minBid.getValue(issue).toString(), 1.0);
-        }*/
+        }
 
         lpw.setMinProblem(true);
         LPSolution lpSolution = lpw.solve();

@@ -24,7 +24,7 @@ public class Group4OS extends OfferingStrategy {
     double opCare = 0.4;
 
     int agentToFavor = 0;
-    double lowValue = 0.6;
+    double lowUtilValue = 0.67;
     int lastBid = 0; // Keep track of the last bid
     Bid bidValue;
     public static double agreeMentValue;
@@ -32,9 +32,9 @@ public class Group4OS extends OfferingStrategy {
     private List<components.BidStruct> feasibleBids;
     private Utils utilities;
 
-    // TODO Remove these later!!
-    int[] issueOrder;
-    int[][] issueValOrder;
+    //
+    int[] orderedIssues;
+    int[][] orderedIssuesValues;
 
     @Override
     public void init(NegotiationSession negoSession, OpponentModel model, OMStrategy oms,
@@ -45,8 +45,8 @@ public class Group4OS extends OfferingStrategy {
         this.opponentModel = model;
         this.omStrategy = oms;
         this.utilities = new Utils();
-        this.issueOrder = utilities.getOrderedIssues(ownUtilitySpace);
-        this.issueValOrder = utilities.getOrderedIssueValues(ownUtilitySpace);
+        this.orderedIssues = utilities.getOrderedIssues(ownUtilitySpace);
+        this.orderedIssuesValues = utilities.getOrderedIssueValues(ownUtilitySpace);
         this.feasibleBids = getFeasibleBidsList();
         this.agreeMentValue = parameters.get("av");
 
@@ -70,11 +70,7 @@ public class Group4OS extends OfferingStrategy {
     @Override
     public BidDetails determineNextBid() {
         opCare *= 1.004;
-        // agreeMentValue = getParameterSpec().size();
         BidDetails offerBid = getNewBid();
-
-        agentToFavor += 1;
-        agentToFavor = agentToFavor % 2;
 
         return  offerBid;
 
@@ -120,14 +116,14 @@ public class Group4OS extends OfferingStrategy {
         List<Issue> issues = ownUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
             int issueNumber = issue.getNumber();
-            if (issueNumber >= issueOrder.length) break;
-            for (int i = 0; i < issueValOrder[issueOrder[issueNumber]].length; ++i) {
-                int issueID = issueOrder[issueNumber];
-                int item = issueValOrder[issueID][i] - 1;
+            if (issueNumber >= orderedIssues.length) break;
+            for (int i = 0; i < orderedIssuesValues[orderedIssues[issueNumber]].length; ++i) {
+                int issueID = orderedIssues[issueNumber];
+                int item = orderedIssuesValues[issueID][i] - 1;
                 try {
                     ValueDiscrete issueValue = ((IssueDiscrete) ownUtilitySpace.getIssue(issueID)).getValue(item);
                     tempBid = tempBid.putValue(issueID+1, issueValue);
-                    if (ownUtilitySpace.getUtility(tempBid) > lowValue) {
+                    if (ownUtilitySpace.getUtility(tempBid) > lowUtilValue) {
                         validBids.add(new components.BidStruct(tempBid, ownUtilitySpace.getUtility(tempBid)));
                     }
                 }
