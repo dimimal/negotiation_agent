@@ -39,7 +39,7 @@ public class Agent4 extends BoaParty {
         OfferingStrategy   os  = new Group4OS();
         // OfferingStrategy 	os  = new TimeDependent_Offering();
         OpponentModel      om  = new Group4OM();
-        OMStrategy         oms = new Group4OMS();
+        OMStrategy oms = new Group4OMS();
 
         Map<String, Double> noparams = Collections.emptyMap();
         Map<String, Double> osParams = new HashMap<String, Double>();
@@ -48,6 +48,7 @@ public class Agent4 extends BoaParty {
         osParams.put("av", 1.0);
 
         configure(ac, osParams, os, osParams, om, noparams, oms, noparams);
+        //configure(ac, osParams, os, osParams, om, noparams, null, noparams);
         super.init(info);
 
         AbstractUtilitySpace utilitySpace = info.getUtilitySpace();
@@ -90,9 +91,9 @@ public class Agent4 extends BoaParty {
                 String optionName = valueDiscrete.getValue();
                 System.out.println(optionName);
                 double v = evaluatorDiscrete.getDoubleValue(valueDiscrete);
-                System.out.println("Evaluation(getValue): " + evaluatorDiscrete.getDoubleValue(valueDiscrete));
+//                System.out.println("Evaluation(getValue): " + evaluatorDiscrete.getDoubleValue(valueDiscrete));
                 try {
-                    System.out.println("Evaluation(getEvaluation): " + evaluatorDiscrete.getEvaluation(valueDiscrete));
+                    // System.out.println("Evaluation(getEvaluation): " + evaluatorDiscrete.getEvaluation(valueDiscrete));
                     //realValUtils.put(issue.getName() + optionName, evaluatorDiscrete.getEvaluation(valueDiscrete));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -140,7 +141,8 @@ public class Agent4 extends BoaParty {
         }
 
         // Normalize the weights, since we picked them randomly in [0, 1]
-        //additiveUtilitySpaceFactory.normalizeWeights();
+        additiveUtilitySpaceFactory.scaleAllValuesFrom0To1();
+        additiveUtilitySpaceFactory.normalizeWeights();
 
         // The factory is done with setting all parameters, now return the estimated utility space
         return additiveUtilitySpaceFactory.getUtilitySpace();

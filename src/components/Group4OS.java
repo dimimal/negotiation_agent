@@ -21,10 +21,9 @@ public class Group4OS extends OfferingStrategy {
     /*
     Implements the Johnny black bidding strategy
      */
-    double opCare = 0.4;
+    double opCare = 0.48;
 
-    int agentToFavor = 0;
-    double lowUtilValue = 0.67;
+    double lowUtilValue = 0.68;
     int lastBid = 0; // Keep track of the last bid
     Bid bidValue;
     public static double agreeMentValue;
@@ -49,9 +48,8 @@ public class Group4OS extends OfferingStrategy {
         this.orderedIssuesValues = utilities.getOrderedIssueValues(ownUtilitySpace);
         this.feasibleBids = getFeasibleBidsList();
         this.agreeMentValue = parameters.get("av");
-
-
     }
+
     /**
      * Determines the first bid to be offered by the agent
      *
@@ -73,7 +71,7 @@ public class Group4OS extends OfferingStrategy {
         BidDetails offerBid = getNewBid();
 
         return  offerBid;
-
+        // return omStrategy.getBid((SortedOutcomeSpace) negotiationSession.getOutcomeSpace(), agreeMentValue);
     }
 
     /*
@@ -82,11 +80,13 @@ public class Group4OS extends OfferingStrategy {
     public BidDetails getNewBid() {
         for (int i = lastBid + 1; i < feasibleBids.size(); i++) {
             components.BidStruct fsBid = feasibleBids.get(i);
-//            if (fsBid.value > agreeMentValue && agentToFavor == 0 && ownUtilitySpace.getUtility(fsBid.bid) > opCare) {
-//                lastBid = i;
-//                return new BidDetails(fsBid.bid, fsBid.value);
-//            }
-//            else
+
+            System.out.println("OPONENT BID Eval: " + opponentModel.getBidEvaluation(fsBid.bid));
+            System.out.println("USER BID Eval: " + ownUtilitySpace.getUtility(fsBid.bid));
+            double[] weights = opponentModel.getIssueWeights();
+            for (double j: weights){
+                System.out.println("Op issue weight "+  j);
+            }
             if (fsBid.value > agreeMentValue && opponentModel.getBidEvaluation(fsBid.bid) > opCare) {
                 lastBid = i;
                 return new BidDetails(fsBid.bid, fsBid.value);
@@ -109,17 +109,20 @@ public class Group4OS extends OfferingStrategy {
 
     public List<components.BidStruct> getFeasibleBidsList() throws Exception {
         List<components.BidStruct> validBids = new ArrayList<components.BidStruct>();
-        // TODO Own utility or op utility
+        int issueID;
+        int item;
+        int issueNumber;
         Bid bid =  ownUtilitySpace.getMaxUtilityBid();
         Bid tempBid = new Bid(bid);
+
         // Ierate all issues
         List<Issue> issues = ownUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
-            int issueNumber = issue.getNumber();
+            issueNumber = issue.getNumber();
             if (issueNumber >= orderedIssues.length) break;
             for (int i = 0; i < orderedIssuesValues[orderedIssues[issueNumber]].length; ++i) {
-                int issueID = orderedIssues[issueNumber];
-                int item = orderedIssuesValues[issueID][i] - 1;
+                issueID = orderedIssues[issueNumber];
+                item = orderedIssuesValues[issueID][i] - 1;
                 try {
                     ValueDiscrete issueValue = ((IssueDiscrete) ownUtilitySpace.getIssue(issueID)).getValue(item);
                     tempBid = tempBid.putValue(issueID+1, issueValue);

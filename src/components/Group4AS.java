@@ -1,6 +1,7 @@
 package components;
 
 import genius.core.Bid;
+import genius.core.analysis.BidPoint;
 import genius.core.analysis.BidSpace;
 import genius.core.bidding.BidDetails;
 import genius.core.boaframework.*;
@@ -14,19 +15,16 @@ import java.util.Map;
 
 public class Group4AS extends AcceptanceStrategy {
 
-    // private double discount = 1.0;
     private BidSpace utilityBidSpace;
     private AdditiveUtilitySpace utilitySpace;
 //    public double discountThreshold = 0.845;
-    private double motValue = 0.62;
+    private double motValue = 0.65;
     double reluctance = 1.1;
     int nBidsToConsiderFromOp = 100;
     int round = 0;
     public double agreeMentValue;
     private UserModel userModelSpace;
-    private int roundInterval = 3;
-
-
+    private int roundInterval = 5;
 
 
     public Group4AS() {
@@ -48,33 +46,21 @@ public class Group4AS extends AcceptanceStrategy {
         opponentModel = om;
         utilitySpace = (AdditiveUtilitySpace) opponentModel.getOpponentUtilitySpace();
         agreeMentValue = parameters.get("av");
-        utilityBidSpace = new BidSpace(utilitySpace, om.getOpponentUtilitySpace());
+
 
         userModelSpace = negotiationSession.getUserModel();
+        this.utilityBidSpace = new BidSpace(negotiationSession.getUtilitySpace(), om.getOpponentUtilitySpace());
 
+        // utilityBidSpace = new BidSpace(utilitySpace, opponentModel.getOpponentUtilitySpace());
     }
 
     @Override
     public Actions determineAcceptability() {
         Bid partnerBid = negotiationSession.getOpponentBidHistory().getLastBid();
         double time = negotiationSession.getTime();
-//        if (utilitySpace.getDiscountFactor() <= 1.0 && utilitySpace.getDiscountFactor() > 0.0)
-//            discount = utilitySpace.getDiscountFactor();
-//        if (time > 0.97) {
-//            if (bidAlreadyMade(partnerBid)) {
-//                return Actions.Accept;
-//
-//            }
-//        } else if (discount >= discountThreshold) {
-//            if (bidAlreadyMade(partnerBid)) {
-//                return Actions.Accept;
-//            }
-//        }
-        double myOfferedUtil = negotiationSession.getDiscountedUtility(offeringStrategy.getNextBid().getBid(), time);
-        double offeredUtilFromOpponent = negotiationSession.getDiscountedUtility(negotiationSession.getOpponentBidHistory().getLastBid(), time);
 
         try {
-            if (isAcceptable(offeredUtilFromOpponent, myOfferedUtil, time, partnerBid))
+            if (isAcceptable(time, partnerBid))
                 return Actions.Accept;
         } catch (Exception e) {
             e.printStackTrace();
@@ -83,20 +69,19 @@ public class Group4AS extends AcceptanceStrategy {
         return Actions.Reject;
     }
 
-    public boolean isAcceptable(double offeredUtilFromOpponent, double myOfferedUtil, double time, Bid oppBid) throws Exception {
-
-//        if (offeredUtilFromOpponent >= myOfferedUtil) {
-//            return true;
-//        }
-//
-//        return false;
+    public boolean isAcceptable(double time, Bid oppBid) throws Exception {
 
         double bidValue = 0;
         round += 1;
 
-        utilityBidSpace = new BidSpace(utilitySpace, opponentModel.getOpponentUtilitySpace());
+
 //        System.out.printf("Nash Point: %s%n", utilityBidSpace.getNash().toString());
 //        System.out.printf("Oponent Nash Utility: %s%n", utilityBidSpace.getNash().);
+        BidPoint nashPoint = utilityBidSpace.getNash();
+        Bid nashBid = nashPoint.getBid();
+//        System.out.println("Nash Bid" + nashBid.toString());
+//        System.out.println("Nash A: " + nashPoint.getUtilityA());
+//        System.out.println("Nash B: " + nashPoint.getUtilityB());
 
         // Every Interval rounds update the AV and bids to consider for the opponent
         if (round % roundInterval == 0) {
@@ -106,11 +91,10 @@ public class Group4AS extends AcceptanceStrategy {
             agreeMentValue *= reluctance;
             if (agreeMentValue >= 1)
                 agreeMentValue = 0.99;
-            System.out.println("Agreement  Value = " + agreeMentValue);
-            if (nBidsToConsiderFromOp > roundInterval) {
+            if (nBidsToConsiderFromOp > 15) {
                 nBidsToConsiderFromOp -= 5;
             }
-            System.out.println(nBidsToConsiderFromOp);
+//            System.out.println(nBidsToConsiderFromOp);
 
             // Update agreementValue
             ((Group4OS) this.offeringStrategy).agreeMentValue = this.agreeMentValue;
@@ -119,37 +103,17 @@ public class Group4AS extends AcceptanceStrategy {
         if (oppBid != null)
             bidValue = utilitySpace.getUtility(oppBid);
 
-         System.out.println("bidValue: " + bidValue + " || AgreemValue: " + agreeMentValue);
-        if (bidValue >= agreeMentValue)
+
+        if (bidValue >= agreeMentValue) {
+            System.out.println("bidValue: " + bidValue + " || AgreemValue: " + agreeMentValue);
             return true;
+        }
         else{
             return false;
         }
-
-        // Agent TD
-//        if (offeredUtilFromOpponent > myOfferedUtil) {
-//            if (time < 0.7) {
-//                if (offeredUtilFromOpponent > 0.85)
-//                    return true;
-//            } else if (time < 0.98) {
-//                if (offeredUtilFromOpponent > 0.75)
-//                    return true;
-//            } else {
-//                return true;
-//            }
-//        }
-//        return false;
     }
 
-//    public boolean bidAlreadyMade(Bid a) {
-//        boolean result = false;
-//        for (int i = 0; i < negotiationSession.getOwnBidHistory().size(); i++) {
-//            if (a.equals(negotiationSession.getOwnBidHistory().getHistory().get(i).getBid())) {
-//                result = true;
-//            }
-//        }
-//        return result;
-//    }
+
 
     /*
      Take into account both own and op utility space
@@ -163,8 +127,8 @@ public class Group4AS extends AcceptanceStrategy {
         List<BidDetails> tempOpBids = negotiationSession.getOpponentBidHistory().getNBestBids(numOfBids);
 
         // Create ordered user bids
-        for (Bid b: bidsHistory) {
-            orderedUserBids.add(new components.BidStruct(b, utilitySpace.getUtility(b)));
+        for (Bid bid: bidsHistory) {
+            orderedUserBids.add(new components.BidStruct(bid, utilitySpace.getUtility(bid)));
         }
         Collections.sort(orderedUserBids);
 
@@ -182,19 +146,20 @@ public class Group4AS extends AcceptanceStrategy {
                 // If opponents bid not in my preference, remove it.
                 if (opponentBids.indexOf(allBestBids.get(i)) > numOfBids || opponentBids.indexOf(allBestBids.get(i)) == -1) {
                     allBestBids.remove(i);
-                    i--;
+                    // TODO WTF???
+                    // i--;
                     break;
                 }
         }
 
         System.out.println("Top Bids : " + allBestBids.size());
         double maximumValue = 0;
-        for (components.BidStruct b : allBestBids) {
-            if (b.value > maximumValue)
-                maximumValue = b.value;
+        for (components.BidStruct bid : allBestBids) {
+            if (bid.value > maximumValue)
+                maximumValue = bid.value;
         }
         // Select the greater of max and MOT
-        System.out.println("Maximum Value: " + maximumValue);
+//        System.out.println("Maximum Value: " + maximumValue);
         return Math.max(maximumValue, motValue);
     }
 
