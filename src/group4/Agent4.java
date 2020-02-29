@@ -1,33 +1,33 @@
 package group4;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import components.Group4AS;
+import components.Group4OM;
+import components.Group4OMS;
+import components.Group4OS;
 import genius.core.Bid;
-import genius.core.boaframework.AcceptanceStrategy;
-import genius.core.boaframework.BoaParty;
-import genius.core.boaframework.OMStrategy;
-import genius.core.boaframework.OfferingStrategy;
-import genius.core.boaframework.OpponentModel;
+import genius.core.boaframework.*;
 import genius.core.issue.Issue;
 import genius.core.issue.IssueDiscrete;
-import genius.core.issue.Value;
 import genius.core.issue.ValueDiscrete;
 import genius.core.parties.NegotiationInfo;
+import genius.core.uncertainty.AdditiveUtilitySpaceFactory;
 import genius.core.uncertainty.BidRanking;
 import genius.core.utility.AbstractUtilitySpace;
 import genius.core.utility.AdditiveUtilitySpace;
 import genius.core.utility.EvaluatorDiscrete;
-
-import group4.components.*;
-
 import scpsolver.problems.LPSolution;
 import scpsolver.problems.LPWizard;
 import scpsolver.problems.LPWizardConstraint;
 
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+
 
 
 public class Agent4 extends BoaParty {
-    private HashMap<String, Double> issueValUtils = new HashMap<>();
+    private Map<String, Double> issueValUtils = new HashMap<>();
+    private AdditiveUtilitySpace additiveUtilitySpace;
 
     @Override
     public void init(NegotiationInfo info)
@@ -35,26 +35,21 @@ public class Agent4 extends BoaParty {
         AcceptanceStrategy ac  = new Group4AS();
         OfferingStrategy   os  = new Group4OS();
         OpponentModel      om  = new Group4OM();
-        OMStrategy         oms = new Group4OMS();
+        OMStrategy oms = new Group4OMS();
 
         Map<String, Double> noparams = Collections.emptyMap();
+        Map<String, Double> osParams = new HashMap<String, Double>();
 
-        configure(ac, noparams, os, noparams, om, noparams, oms, noparams);
+        osParams.put("e", 0.2);
+        osParams.put("av", 1.0);
+
+        configure(ac, osParams, os, osParams, om, noparams, oms, noparams);
+        //configure(ac, osParams, os, osParams, om, noparams, null, noparams);
         super.init(info);
 
         AbstractUtilitySpace utilitySpace = info.getUtilitySpace();
-        AdditiveUtilitySpace additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
+        additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
         System.out.println("---------------------Default Estimated Userspace");
-
-        this.spaceInspect(additiveUtilitySpace);
-
-
-        /*ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
-        UncertainAdditiveUtilitySpace realUSpace = e. getRealUtilitySpace();
-        System.out.println("---------------------Real Userspace");
-        this.spaceInspect(realUSpace);*/
-
-        this.updateUserParam(additiveUtilitySpace);
     }
 
     @Override
@@ -76,22 +71,18 @@ public class Agent4 extends BoaParty {
             for (ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
                 String optionName = valueDiscrete.getValue();
                 System.out.println(optionName);
-                System.out.println("Evaluation(getValue): " + evaluatorDiscrete.getValue(valueDiscrete));
+                double v = evaluatorDiscrete.getDoubleValue(valueDiscrete);
+//                System.out.println("Evaluation(getValue): " + evaluatorDiscrete.getDoubleValue(valueDiscrete));
                 try {
-                    System.out.println("Evaluation(getEvaluation): " + evaluatorDiscrete.getEvaluation(valueDiscrete));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                // initialization of options for each issue
-                //optionFrequency.put(optionName, new ArrayList<>(Arrays.asList(0.0, 0.0)));
             }
-            // issue weight and normalized weight
-            //optionFrequency.put(ISSUE_WEIGHT, new ArrayList<>(Arrays.asList(0.0, 0.0)));
-            //issueOptionFrequecies.put(issueNumber, optionFrequency);
         }
     }
 
-    private void updateUserParam(AdditiveUtilitySpace additiveUtilitySpace) {
+    private void updateUserParam() {
+        System.out.println("updateUserParam");
         BidRanking userBidRanking = userModel.getBidRanking();
         List<Bid> rankedUserBids = userBidRanking.getBidOrder(); // From low to high
         int rankedBidsNum = rankedUserBids.size();
@@ -99,10 +90,36 @@ public class Agent4 extends BoaParty {
         double elicitCost = user.getElicitationCost();
 
         try {
-            lpMethod(rankedUserBids, additiveUtilitySpace);
+            lpMethod(rankedUserBids);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public AbstractUtilitySpace estimateUtilitySpace()
+    {
+        this.updateUserParam();
+        System.out.println("estimateUtilitySpace");
+        AdditiveUtilitySpaceFactory additiveUtilitySpaceFactory = new AdditiveUtilitySpaceFactory(getDomain());
+        List<IssueDiscrete> issues = additiveUtilitySpaceFactory.getIssues();
+        for (IssueDiscrete i : issues)
+        {
+            //additiveUtilitySpaceFactory.setWeight(i, rand.nextDouble());
+            additiveUtilitySpaceFactory.setWeight(i, 1);
+            for (ValueDiscrete v : i.getValues()) {
+                //additiveUtilitySpaceFactory.setUtility(i, v, rand.nextDouble());
+                additiveUtilitySpaceFactory.setUtility(i, v, this.issueValUtils.get(i.getName() + v.toString()));
+                System.out.println(i+": "+v+": "+this.issueValUtils.get(i.getName() + v.toString()));
+            }
+        }
+
+        // Normalize the weights, since we picked them randomly in [0, 1]
+        additiveUtilitySpaceFactory.scaleAllValuesFrom0To1();
+        additiveUtilitySpaceFactory.normalizeWeights();
+
+        // The factory is done with setting all parameters, now return the estimated utility space
+        return additiveUtilitySpaceFactory.getUtilitySpace();
     }
 
     public double utilityEstimate(Bid bid) {
@@ -113,45 +130,46 @@ public class Agent4 extends BoaParty {
         return util;
     }
 
-
-    private void lpMethod(List<Bid> bids, AdditiveUtilitySpace additiveUtilitySpace) throws Exception {
+    private void lpMethod(List<Bid> bids) throws Exception {
         LPWizard lpw = new LPWizard();
         List<Issue> issues = userModel.getDomain().getIssues();
         int oSize = bids.size();
         // Constraints: each slack term is non-negative
         for(int i = 0; i < oSize-1; i++) {
             lpw.plus("Slack" + i, 1.0);
-            lpw.addConstraint("s" + i, 0, "<=").plus("Slack" + i, 1.0);
+            lpw.addConstraint("s" + i, 0.0, "<=").plus("Slack" + i, 1.0);
         }
         //varList.stream().forEach(s -> lpw.plus(s, 1.0));
-        // Constraints: comparisons
+        // CONSTRAINT: comparisons
         for(int i=0; i < bids.size()-1; i++) {
-            // Phi(o_i) - phi(o_i+1) - z <= 0
-            LPWizardConstraint lpwc = lpw.addConstraint("c"+ i, 0, ">=");
+            // Phi(o_i+1) - phi(o_i) + z >= 0
+            LPWizardConstraint lpwc = lpw.addConstraint("c"+ i, 0d, "<=");
             for (Issue issue : issues) {
                 if (!bids.get(i).getValue(issue).toString().equals(bids.get(i + 1).getValue(issue).toString())) {
-                    lpwc.plus(issue.getName() + bids.get(i).getValue(issue).toString(), 1.0)
-                            .plus(issue.getName() + bids.get(i + 1).getValue(issue).toString(), -1.0)
-                            .plus("Slack" + i, -1.0);
+                    lpwc.plus(issue.getName() + bids.get(i + 1).getValue(issue).toString(), 1.0)
+                            .plus(issue.getName() + bids.get(i).getValue(issue).toString(), -1.0)
+                            .plus("Slack" + i, 1.0);
                 }
             }
         }
-        // Constraints: util of each issue value is non-negative
+        // CONSTRAINT: util of each issue value is non-negative
         List<String> iVals = ivPairs();
         AtomicInteger k= new AtomicInteger(1);
-        iVals.forEach(s -> lpw.addConstraint("v" + k.getAndIncrement(), 0, "<=").plus(s, 1.0));
-        // Constraints: util of gloabl max bid is 1
-        Bid maxBid = additiveUtilitySpace.getMaxUtilityBid();
+        iVals.forEach(s -> lpw.addConstraint("v" + k.getAndIncrement(), 0.0, "<=").plus(s, 1.0));
+        // CONSTRAINT: util of gloabl max bid is 1
+
+        // Use local maximum
+        Bid maxBid = userModel.getBidRanking().getMaximalBid();
         LPWizardConstraint lpwc = lpw.addConstraint("max", 1.0, "=");
         for(Issue issue : issues) {
             lpwc.plus(issue.getName() + maxBid.getValue(issue).toString(), 1.0);
         }
-        // Constraints: util of gloabl min bid is 0
-        /*Bid minBid = additiveUtilitySpace.getMinUtilityBid();
-        lpwc = lpw.addConstraint("min", 0.0, "=");
+        // CONSTRAINT: util of gloabl min bid is 0
+        Bid minBid = userModel.getBidRanking().getMinimalBid();
+        lpwc = lpw.addConstraint("min", userModel.getBidRanking().getLowUtility(), "=");
         for(Issue issue : issues) {
             lpwc.plus(issue.getName() + minBid.getValue(issue).toString(), 1.0);
-        }*/
+        }
 
         lpw.setMinProblem(true);
         LPSolution lpSolution = lpw.solve();
@@ -161,7 +179,10 @@ public class Agent4 extends BoaParty {
             e.printStackTrace();
         }
         for(String s : iVals) {
-            this.issueValUtils.put(s, lpSolution.getDouble(s));
+            if(lpSolution.getDouble(s) < 0)
+                this.issueValUtils.put(s, 0d);
+            else
+                this.issueValUtils.put(s, lpSolution.getDouble(s));
         }
     }
 
