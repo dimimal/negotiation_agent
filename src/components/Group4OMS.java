@@ -7,7 +7,6 @@ import genius.core.boaframework.OpponentModel;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 /*
 * This module is based on the example from exampleWiki module
@@ -33,34 +32,8 @@ public class Group4OMS extends OMStrategy {
      */
     @Override
     public BidDetails getBid(List<BidDetails> bidsInRange) {
-        double evalBid = 0.;
-        double maxUtil = 0;
-        boolean isOpModelWork = true;
-
-        // Only one bid, return it
-        if (bidsInRange.size() == 1) {
-            return bidsInRange.get(0);
-        }
-
-        BidDetails bestBid = bidsInRange.get(0);
-
-        for (BidDetails bid : bidsInRange) {
-            evalBid = opModel.getBidEvaluation(bid.getBid());
-            if (evalBid > 0.0001) {
-                isOpModelWork = false;
-            }
-            if (evalBid > maxUtil ) {
-                bestBid = bid;
-                maxUtil = evalBid;
-            }
-        }
-
-        if (isOpModelWork) {
-            Random random = new Random();
-            int randomInt = random.nextInt(bidsInRange.size());
-            return bidsInRange.get(randomInt);
-        }
-        return bestBid;
+        // This method is never called. We do not use it in the framework
+        return bidsInRange.get(0);
     }
 
     /**

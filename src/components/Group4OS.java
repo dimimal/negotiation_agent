@@ -21,19 +21,19 @@ public class Group4OS extends OfferingStrategy {
     /*
     Implements the Johnny black bidding strategy
      */
-    double opCare = 0.48;
+    double opCare = 0.4;
 
-    double lowUtilValue = 0.68;
+    double lowUtilValue = 0.6;
     int lastBid = 0; // Keep track of the last bid
-    Bid bidValue;
     public static double agreeMentValue;
     private AdditiveUtilitySpace ownUtilitySpace;
     private List<components.BidStruct> feasibleBids;
     private Utils utilities;
-
+    int round = 0;
     //
     int[] orderedIssues;
     int[][] orderedIssuesValues;
+    private boolean isFsbCalculated;
 
     @Override
     public void init(NegotiationSession negoSession, OpponentModel model, OMStrategy oms,
@@ -47,6 +47,7 @@ public class Group4OS extends OfferingStrategy {
         this.orderedIssues = utilities.getOrderedIssues(ownUtilitySpace);
         this.orderedIssuesValues = utilities.getOrderedIssueValues(ownUtilitySpace);
         this.feasibleBids = getFeasibleBidsList();
+        Collections.sort(this.feasibleBids);
         this.agreeMentValue = parameters.get("av");
     }
 
@@ -71,7 +72,6 @@ public class Group4OS extends OfferingStrategy {
         BidDetails offerBid = getNewBid();
 
         return  offerBid;
-        // return omStrategy.getBid((SortedOutcomeSpace) negotiationSession.getOutcomeSpace(), agreeMentValue);
     }
 
     /*
@@ -80,13 +80,7 @@ public class Group4OS extends OfferingStrategy {
     public BidDetails getNewBid() {
         for (int i = lastBid + 1; i < feasibleBids.size(); i++) {
             components.BidStruct fsBid = feasibleBids.get(i);
-
-            System.out.println("OPONENT BID Eval: " + opponentModel.getBidEvaluation(fsBid.bid));
-            System.out.println("USER BID Eval: " + ownUtilitySpace.getUtility(fsBid.bid));
-            double[] weights = opponentModel.getIssueWeights();
-            for (double j: weights){
-                System.out.println("Op issue weight "+  j);
-            }
+//            System.out.println(fsBid.value > agreeMentValue && opponentModel.getBidEvaluation(fsBid.bid) > opCare);
             if (fsBid.value > agreeMentValue && opponentModel.getBidEvaluation(fsBid.bid) > opCare) {
                 lastBid = i;
                 return new BidDetails(fsBid.bid, fsBid.value);
@@ -107,42 +101,41 @@ public class Group4OS extends OfferingStrategy {
         return "JB Bidding";
     }
 
+    /* Create Bid candidates according to our own preference!
+     */
     public List<components.BidStruct> getFeasibleBidsList() throws Exception {
         List<components.BidStruct> validBids = new ArrayList<components.BidStruct>();
         int issueID;
         int item;
         int issueNumber;
-        Bid bid =  ownUtilitySpace.getMaxUtilityBid();
-        Bid tempBid = new Bid(bid);
+        Bid maxBid =  ownUtilitySpace.getMaxUtilityBid();
+        Bid tempBid = new Bid(maxBid);
 
-        // Ierate all issues
         List<Issue> issues = ownUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
             issueNumber = issue.getNumber();
+
             if (issueNumber >= orderedIssues.length) break;
             for (int i = 0; i < orderedIssuesValues[orderedIssues[issueNumber]].length; ++i) {
                 issueID = orderedIssues[issueNumber];
                 item = orderedIssuesValues[issueID][i] - 1;
                 try {
                     ValueDiscrete issueValue = ((IssueDiscrete) ownUtilitySpace.getIssue(issueID)).getValue(item);
-                    tempBid = tempBid.putValue(issueID+1, issueValue);
+                    tempBid = tempBid.putValue(issueID + 1, issueValue);
                     if (ownUtilitySpace.getUtility(tempBid) > lowUtilValue) {
                         validBids.add(new components.BidStruct(tempBid, ownUtilitySpace.getUtility(tempBid)));
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     System.out.println(1);
                     continue;
                 }
 
             }
         }
-        // System.out.println("List Size:" + validBids.size());
-        Collections.sort(validBids);
+
         return validBids;
+
     }
-
-
 
 }
 

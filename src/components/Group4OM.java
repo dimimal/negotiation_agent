@@ -34,8 +34,6 @@ public class Group4OM extends OpponentModel {
         opponentUtilitySpace = (AdditiveUtilitySpace) negotiationSession
                 .getUtilitySpace().copy();
 
-
-        // TODO this below might be added in a different method
         List<Issue> issues = opponentUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
             int issueNumber = issue.getNumber();
@@ -107,15 +105,9 @@ public class Group4OM extends OpponentModel {
                         prev = sortedMap.get(key).get(0);
                     }
                 }
-				/*System.out.println(">>>>>>>>>>>>>>>index  " + i);
-				System.out.println(">>>>>>>>>>>>>>>rank  " + rank);
-				System.out.println(">>>>>>>>>>>>>>>freq  " + sortedMap.get(key).get(0));
-				System.out.println(">>>>>>>>>>>>>>>key  " + key);*/
-
                 double w = (sortedMap.size()-rank + 0d)/(sortedMap.size()-1d);
                 sortedMap.get(key).set(1, w);
                 i += 1;
-                //System.out.println(key + ": " + map.get(key));
             }
         }
     }
@@ -128,10 +120,10 @@ public class Group4OM extends OpponentModel {
     }
 
     /*
-     * Place the estimated opponent utility weights into oppoonent utility space
+     * Place the estimated opponent utility weights into opponent's utility space
      */
     private void updateEstimatedOpponentUtility() {
-        double estWeight = 0.0;
+        double estWeight;
         List<Issue> issues = opponentUtilitySpace.getDomain().getIssues();
         for (Issue issue : issues) {
             estWeight = issueOptionFrequecies.get(issue.getNumber()).get(ISSUE_WEIGHT).get(1);

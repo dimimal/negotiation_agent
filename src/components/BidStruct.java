@@ -6,6 +6,10 @@ public class BidStruct implements Comparable<BidStruct>  {
 
     Bid bid;
     double value;
+
+    public BidStruct() {
+
+    }
     /*
     Constructor
      */

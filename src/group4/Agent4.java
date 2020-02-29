@@ -22,22 +22,18 @@ import scpsolver.problems.LPWizardConstraint;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-//import group4.components.*;
-//import net.xoroth.boacomponents.*;
 
 
 
 public class Agent4 extends BoaParty {
     private Map<String, Double> issueValUtils = new HashMap<>();
     private AdditiveUtilitySpace additiveUtilitySpace;
-    //private Map<String, Double> realValUtils = new HashMap<>();
 
     @Override
     public void init(NegotiationInfo info)
     {
         AcceptanceStrategy ac  = new Group4AS();
         OfferingStrategy   os  = new Group4OS();
-        // OfferingStrategy 	os  = new TimeDependent_Offering();
         OpponentModel      om  = new Group4OM();
         OMStrategy oms = new Group4OMS();
 
@@ -54,21 +50,6 @@ public class Agent4 extends BoaParty {
         AbstractUtilitySpace utilitySpace = info.getUtilitySpace();
         additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
         System.out.println("---------------------Default Estimated Userspace");
-
-        //this.spaceInspect(additiveUtilitySpace);
-
-        /*for(Bid bid : userModel.getBidRanking().getBidOrder()) {
-            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.utilityEstimate(bid));
-        }*/
-
-        /*ExperimentalUserModel e = (ExperimentalUserModel) userModel ;
-        UncertainAdditiveUtilitySpace realUSpace = e.getRealUtilitySpace();
-        System.out.println("---------------------Real Userspace");
-        this.spaceInspect(realUSpace);
-        for(Bid bid : userModel.getBidRanking().getBidOrder()) {
-            System.out.println("Bid ranking "+ userModel.getBidRanking().getBidOrder().indexOf(bid) + " value: " + this.realUtilityEstimate(bid));
-        }*/
-
     }
 
     @Override
@@ -93,17 +74,10 @@ public class Agent4 extends BoaParty {
                 double v = evaluatorDiscrete.getDoubleValue(valueDiscrete);
 //                System.out.println("Evaluation(getValue): " + evaluatorDiscrete.getDoubleValue(valueDiscrete));
                 try {
-                    // System.out.println("Evaluation(getEvaluation): " + evaluatorDiscrete.getEvaluation(valueDiscrete));
-                    //realValUtils.put(issue.getName() + optionName, evaluatorDiscrete.getEvaluation(valueDiscrete));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                // initialization of options for each issue
-                //optionFrequency.put(optionName, new ArrayList<>(Arrays.asList(0.0, 0.0)));
             }
-            // issue weight and normalized weight
-            //optionFrequency.put(ISSUE_WEIGHT, new ArrayList<>(Arrays.asList(0.0, 0.0)));
-            //issueOptionFrequecies.put(issueNumber, optionFrequency);
         }
     }
 
@@ -156,15 +130,6 @@ public class Agent4 extends BoaParty {
         return util;
     }
 
-    /*public double realUtilityEstimate(Bid bid) {
-        double util = 0.0;
-        for(Issue issue : bid.getIssues()) {
-            util += this.realValUtils.get(issue.getName() + bid.getValue(issue).toString());
-        }
-        return util;
-    }*/
-
-
     private void lpMethod(List<Bid> bids) throws Exception {
         LPWizard lpw = new LPWizard();
         List<Issue> issues = userModel.getDomain().getIssues();
@@ -192,7 +157,7 @@ public class Agent4 extends BoaParty {
         AtomicInteger k= new AtomicInteger(1);
         iVals.forEach(s -> lpw.addConstraint("v" + k.getAndIncrement(), 0.0, "<=").plus(s, 1.0));
         // CONSTRAINT: util of gloabl max bid is 1
-        //Bid maxBid = additiveUtilitySpace.getMaxUtilityBid();
+
         // Use local maximum
         Bid maxBid = userModel.getBidRanking().getMaximalBid();
         LPWizardConstraint lpwc = lpw.addConstraint("max", 1.0, "=");
